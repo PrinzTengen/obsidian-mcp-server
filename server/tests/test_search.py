@@ -1,4 +1,4 @@
-from tools.search import search_notes, search_by_tag
+from tools.search import search_by_tag, search_notes
 
 
 def test_search_notes_finds_matches(tmp_vault):

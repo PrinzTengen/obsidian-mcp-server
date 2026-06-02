@@ -1,13 +1,15 @@
-from pathlib import Path
 import frontmatter
-from vault_manager import get_vault, resolve_path, ensure_parent, VaultError
+
+from vault_manager import VaultError, ensure_parent, get_vault, resolve_path
 
 
 def _ensure_md(path: str) -> str:
     return path if path.endswith(".md") else path + ".md"
 
 
-def create_note(vault: str, path: str, content: str = "", frontmatter_data: dict | None = None) -> str:
+def create_note(
+    vault: str, path: str, content: str = "", frontmatter_data: dict | None = None
+) -> str:
     try:
         vault_path = get_vault(vault)
         note_path = resolve_path(vault_path, _ensure_md(path))
@@ -37,7 +39,9 @@ def read_note(vault: str, path: str) -> dict:
         return {"error": str(e)}
 
 
-def update_note(vault: str, path: str, content: str | None = None, frontmatter_data: dict | None = None) -> str:
+def update_note(
+    vault: str, path: str, content: str | None = None, frontmatter_data: dict | None = None
+) -> str:
     try:
         vault_path = get_vault(vault)
         note_path = resolve_path(vault_path, _ensure_md(path))

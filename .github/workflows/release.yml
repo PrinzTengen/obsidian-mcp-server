@@ -9,7 +9,16 @@ permissions:
   contents: write
 
 jobs:
+  version-gate:
+    name: Tag matches manifest version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check tag matches versions
+        run: python3 scripts/check_versions.py "${{ github.ref_name }}"
+
   build-windows:
+    needs: version-gate
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -64,6 +73,7 @@ jobs:
             plugin/bin/obsidian-mcp-server.exe
 
   build-macos:
+    needs: version-gate
     runs-on: macos-latest # Apple Silicon (arm64)
     steps:
       - uses: actions/checkout@v4

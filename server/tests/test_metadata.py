@@ -1,8 +1,8 @@
 from tools.metadata import (
-    read_frontmatter,
-    write_frontmatter,
     get_backlinks,
     get_outlinks,
+    read_frontmatter,
+    write_frontmatter,
 )
 
 

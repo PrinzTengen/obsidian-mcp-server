@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from config import get_vault_path
 
 
