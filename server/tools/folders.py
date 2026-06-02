@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
-from vault_manager import get_vault, resolve_path, ensure_parent, VaultError
+
+from vault_manager import VaultError, ensure_parent, get_vault, resolve_path
 
 
 def create_folder(vault: str, path: str) -> str:
@@ -65,12 +66,14 @@ def list_folder(vault: str, path: str = "") -> dict:
             if item.is_dir():
                 items.append({"name": item.name, "path": rel, "type": "folder"})
             else:
-                items.append({
-                    "name": item.name,
-                    "path": rel,
-                    "type": "file",
-                    "extension": item.suffix,
-                })
+                items.append(
+                    {
+                        "name": item.name,
+                        "path": rel,
+                        "type": "file",
+                        "extension": item.suffix,
+                    }
+                )
         return {"path": path or "/", "items": items}
     except VaultError as e:
         return {"error": str(e)}
@@ -90,11 +93,13 @@ def get_vault_tree(vault: str) -> dict:
                 if item.is_dir():
                     folders.append(build_tree(item))
                 else:
-                    files.append({
-                        "name": item.name,
-                        "type": "file",
-                        "extension": item.suffix,
-                    })
+                    files.append(
+                        {
+                            "name": item.name,
+                            "type": "file",
+                            "extension": item.suffix,
+                        }
+                    )
             result["children"] = folders + files
             return result
 

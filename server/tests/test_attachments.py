@@ -1,6 +1,6 @@
 import base64
 
-from tools.attachments import list_attachments, read_attachment, delete_attachment
+from tools.attachments import delete_attachment, list_attachments, read_attachment
 
 
 def test_list_attachments_filters_by_extension(tmp_vault):

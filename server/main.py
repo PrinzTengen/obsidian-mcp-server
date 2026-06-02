@@ -5,17 +5,19 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from fastmcp import FastMCP
+
 import config as cfg
-from tools.notes import create_note, read_note, update_note, delete_note, move_note
-from tools.folders import create_folder, delete_folder, move_folder, list_folder, get_vault_tree
-from tools.search import search_notes, search_by_tag
-from tools.metadata import read_frontmatter, write_frontmatter, get_backlinks, get_outlinks
-from tools.attachments import list_attachments, read_attachment, delete_attachment
+from tools.attachments import delete_attachment, list_attachments, read_attachment
+from tools.folders import create_folder, delete_folder, get_vault_tree, list_folder, move_folder
+from tools.metadata import get_backlinks, get_outlinks, read_frontmatter, write_frontmatter
+from tools.notes import create_note, delete_note, move_note, read_note, update_note
+from tools.search import search_by_tag, search_notes
 
 mcp = FastMCP("Obsidian MCP")
 
 
 # ── Vault Management ──────────────────────────────────────────────────────────
+
 
 @mcp.tool()
 def list_vaults() -> dict:
@@ -35,6 +37,7 @@ def add_vault(name: str, path: str) -> str:
         path: Absolute path to the vault folder (e.g. C:/Users/.../Obsidian/Personal)
     """
     from pathlib import Path as P
+
     vault_path = P(path)
     if not vault_path.exists():
         return f"Error: Path does not exist: {path}"
@@ -60,8 +63,11 @@ def remove_vault(name: str) -> str:
 
 # ── Notes ─────────────────────────────────────────────────────────────────────
 
+
 @mcp.tool()
-def create_note_tool(vault: str, path: str, content: str = "", frontmatter: dict | None = None) -> str:
+def create_note_tool(
+    vault: str, path: str, content: str = "", frontmatter: dict | None = None
+) -> str:
     """Create a new Markdown note in the vault.
 
     Args:
@@ -85,7 +91,9 @@ def read_note_tool(vault: str, path: str) -> dict:
 
 
 @mcp.tool()
-def update_note_tool(vault: str, path: str, content: str | None = None, frontmatter: dict | None = None) -> str:
+def update_note_tool(
+    vault: str, path: str, content: str | None = None, frontmatter: dict | None = None
+) -> str:
     """Update an existing note (content and/or frontmatter).
 
     Args:
@@ -121,6 +129,7 @@ def move_note_tool(vault: str, from_path: str, to_path: str) -> str:
 
 
 # ── Folders ───────────────────────────────────────────────────────────────────
+
 
 @mcp.tool()
 def create_folder_tool(vault: str, path: str) -> str:
@@ -180,8 +189,11 @@ def get_vault_tree_tool(vault: str) -> dict:
 
 # ── Search ────────────────────────────────────────────────────────────────────
 
+
 @mcp.tool()
-def search_notes_tool(vault: str, query: str, folder: str = "", case_sensitive: bool = False) -> list:
+def search_notes_tool(
+    vault: str, query: str, folder: str = "", case_sensitive: bool = False
+) -> list:
     """Full-text search across all notes in the vault.
 
     Args:
@@ -205,6 +217,7 @@ def search_by_tag_tool(vault: str, tag: str) -> list:
 
 
 # ── Metadata ──────────────────────────────────────────────────────────────────
+
 
 @mcp.tool()
 def read_frontmatter_tool(vault: str, path: str) -> dict:
@@ -254,6 +267,7 @@ def get_outlinks_tool(vault: str, path: str) -> list:
 
 # ── Attachments ───────────────────────────────────────────────────────────────
 
+
 @mcp.tool()
 def list_attachments_tool(vault: str, folder: str = "") -> list:
     """List all attachments (images, PDFs, etc.) in the vault.
@@ -289,14 +303,19 @@ def delete_attachment_tool(vault: str, path: str) -> str:
 
 # ── Entry Point ───────────────────────────────────────────────────────────────
 
+
 def main():
     parser = argparse.ArgumentParser(description="Obsidian MCP Server")
-    parser.add_argument("--transport", choices=["stdio", "sse"], default="sse",
-                        help="Transport protocol (default: sse)")
-    parser.add_argument("--host", default="127.0.0.1",
-                        help="Host address for SSE (default: 127.0.0.1)")
-    parser.add_argument("--port", type=int, default=3333,
-                        help="Port for SSE (default: 3333)")
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "sse"],
+        default="sse",
+        help="Transport protocol (default: sse)",
+    )
+    parser.add_argument(
+        "--host", default="127.0.0.1", help="Host address for SSE (default: 127.0.0.1)"
+    )
+    parser.add_argument("--port", type=int, default=3333, help="Port for SSE (default: 3333)")
     args = parser.parse_args()
 
     if args.transport == "stdio":

@@ -10,6 +10,33 @@ permissions:
   contents: read
 
 jobs:
+  version-check:
+    name: Version consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check versions agree
+        run: python3 scripts/check_versions.py
+
+  lint:
+    name: Server (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ruff
+        run: pip install "ruff>=0.15.0"
+
+      - name: Lint
+        run: ruff check server/
+
+      - name: Format check
+        run: ruff format --check server/
+
   server-tests:
     name: Server (pytest)
     runs-on: ubuntu-latest

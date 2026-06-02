@@ -1,10 +1,23 @@
 import re
 from pathlib import Path
-import frontmatter
-from vault_manager import get_vault, VaultError
 
-ATTACHMENT_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf",
-                          ".mp3", ".mp4", ".wav", ".svg", ".excalidraw"}
+import frontmatter
+
+from vault_manager import VaultError, get_vault
+
+ATTACHMENT_EXTENSIONS = {
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".pdf",
+    ".mp3",
+    ".mp4",
+    ".wav",
+    ".svg",
+    ".excalidraw",
+}
 
 
 def _iter_notes(vault_path: Path, folder: str = "") -> list[Path]:

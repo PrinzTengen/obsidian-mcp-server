@@ -1,7 +1,9 @@
 import re
 from pathlib import Path
+
 import frontmatter
-from vault_manager import get_vault, resolve_path, VaultError
+
+from vault_manager import VaultError, get_vault, resolve_path
 
 WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]")
 MDLINK_RE = re.compile(r"\[([^\]]*)\]\(([^)]+)\)")
@@ -69,7 +71,6 @@ def get_outlinks(vault: str, path: str) -> list:
         text = note_path.read_text(encoding="utf-8", errors="ignore")
         results = []
         for match in WIKILINK_RE.finditer(text):
-            raw = match.group(0)
             inner = match.group(1).strip()
             parts = inner.split("|")
             target = parts[0].strip()

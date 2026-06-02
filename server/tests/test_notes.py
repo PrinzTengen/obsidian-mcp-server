@@ -1,4 +1,4 @@
-from tools.notes import create_note, read_note, update_note, delete_note, move_note
+from tools.notes import create_note, delete_note, move_note, read_note, update_note
 
 
 def test_create_note_writes_file(tmp_vault):

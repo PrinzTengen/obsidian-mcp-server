@@ -1,10 +1,22 @@
 import base64
 import mimetypes
 from pathlib import Path
-from vault_manager import get_vault, resolve_path, VaultError
 
-ATTACHMENT_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf",
-                          ".mp3", ".mp4", ".wav", ".svg", ".excalidraw"}
+from vault_manager import VaultError, get_vault, resolve_path
+
+ATTACHMENT_EXTENSIONS = {
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".pdf",
+    ".mp3",
+    ".mp4",
+    ".wav",
+    ".svg",
+    ".excalidraw",
+}
 
 
 def _is_attachment(path: Path) -> bool:
@@ -23,12 +35,14 @@ def list_attachments(vault: str, folder: str = "") -> list:
                 if any(part.startswith(".") for part in item.parts):
                     continue
                 rel = str(item.relative_to(vault_path)).replace("\\", "/")
-                results.append({
-                    "path": rel,
-                    "name": item.name,
-                    "extension": item.suffix.lower(),
-                    "size_bytes": item.stat().st_size,
-                })
+                results.append(
+                    {
+                        "path": rel,
+                        "name": item.name,
+                        "extension": item.suffix.lower(),
+                        "size_bytes": item.stat().st_size,
+                    }
+                )
         results.sort(key=lambda r: r["path"])
         return results
     except VaultError as e:
