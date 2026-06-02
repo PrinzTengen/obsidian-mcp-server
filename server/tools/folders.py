@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 
+from indexing import registry
 from vault_manager import VaultError, ensure_parent, get_vault, resolve_path
 
 
@@ -26,6 +27,7 @@ def delete_folder(vault: str, path: str, recursive: bool = False) -> str:
             return f"Error: Path is not a folder: {path}"
         if recursive:
             shutil.rmtree(folder)
+            registry.invalidate(vault)
         else:
             try:
                 folder.rmdir()
@@ -47,6 +49,7 @@ def move_folder(vault: str, from_path: str, to_path: str) -> str:
             return f"Error: Destination already exists: {to_path}"
         ensure_parent(dst)
         shutil.move(str(src), str(dst))
+        registry.invalidate(vault)
         return f"Folder moved: {from_path} -> {to_path}"
     except VaultError as e:
         return f"Error: {e}"
@@ -79,8 +82,16 @@ def list_folder(vault: str, path: str = "") -> dict:
         return {"error": str(e)}
 
 
+_tree_cache: dict[str, tuple[float, dict]] = {}
+
+
 def get_vault_tree(vault: str) -> dict:
     try:
+        idx = registry.get_index(vault)
+        cached = _tree_cache.get(vault)
+        if cached is not None and cached[0] == idx.last_sync_at:
+            return cached[1]
+
         vault_path = get_vault(vault)
 
         def build_tree(folder: Path) -> dict:
@@ -105,6 +116,7 @@ def get_vault_tree(vault: str) -> dict:
 
         tree = build_tree(vault_path)
         tree["name"] = vault
+        _tree_cache[vault] = (idx.last_sync_at, tree)
         return tree
     except VaultError as e:
         return {"error": str(e)}

@@ -21,7 +21,12 @@ mcp = FastMCP("Obsidian MCP")
 
 @mcp.tool()
 def list_vaults() -> dict:
-    """List all configured Obsidian vaults."""
+    """List all configured Obsidian vaults.
+
+    Call this at most once per conversation — the result is stable for the
+    lifetime of the server process. Re-use the names you receive instead of
+    re-querying.
+    """
     vaults = cfg.list_vaults()
     if not vaults:
         return {"vaults": {}, "hint": "No vaults configured. Use 'add_vault' to add one."}
@@ -181,6 +186,10 @@ def list_folder_tool(vault: str, path: str = "") -> dict:
 def get_vault_tree_tool(vault: str) -> dict:
     """Show the complete directory structure of the vault as a tree.
 
+    Call this once per turn at most — the result is cached and only
+    re-computed when the vault actually changes. Keep the tree in mind
+    while planning subsequent reads instead of re-fetching it.
+
     Args:
         vault: Vault name
     """
@@ -195,6 +204,11 @@ def search_notes_tool(
     vault: str, query: str, folder: str = "", case_sensitive: bool = False
 ) -> list:
     """Full-text search across all notes in the vault.
+
+    Backed by an in-memory index that is incrementally synced with disk on
+    every call, so results reflect both MCP-side edits and edits made
+    externally in Obsidian. The index covers note body text — not YAML
+    frontmatter values, which are matched separately via tag search.
 
     Args:
         vault: Vault name

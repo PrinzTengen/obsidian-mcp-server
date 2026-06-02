@@ -8,6 +8,20 @@ sys.path.insert(0, str(SERVER_DIR))
 
 import config  # noqa: E402
 import vault_manager  # noqa: E402
+from indexing import registry as index_registry  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _reset_caches():
+    """Wipe per-process caches between tests so they can't leak state."""
+    index_registry.reset()
+    try:
+        from tools import folders as _folders
+
+        _folders._tree_cache.clear()
+    except Exception:
+        pass
+    yield
 
 
 @pytest.fixture

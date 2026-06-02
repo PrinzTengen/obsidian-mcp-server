@@ -3,6 +3,7 @@ from pathlib import Path
 
 import frontmatter
 
+from indexing import registry
 from vault_manager import VaultError, get_vault, resolve_path
 
 WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]")
@@ -37,6 +38,7 @@ def write_frontmatter(vault: str, path: str, fm_data: dict, merge: bool = True) 
         else:
             post.metadata = fm_data
         note_path.write_text(frontmatter.dumps(post), encoding="utf-8")
+        registry.notify_change(vault, _ensure_md(path))
         return f"Frontmatter updated: {path}"
     except VaultError as e:
         return f"Error: {e}"
