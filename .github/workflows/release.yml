@@ -146,16 +146,70 @@ jobs:
         with:
           name: "Obsidian MCP ${{ github.ref_name }}"
           body: |
-            ## Installation
+            <!-- ───────────────────────────── ENGLISH ───────────────────────────── -->
+            ## 🇬🇧 English
 
-            ### Option A: Manuell
+            ### Installation
+
+            #### Option A: Manual
+            1. Download and extract the matching ZIP:
+               - Windows: `obsidian-mcp-windows.zip`
+               - macOS (Apple Silicon): `obsidian-mcp-macos.zip`
+            2. Copy the `obsidian-mcp/` folder into `<Vault>/.obsidian/plugins/`
+            3. In Obsidian: Settings → Community Plugins → enable "Obsidian MCP"
+
+            #### Option B: BRAT Plugin Manager
+            1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat)
+            2. BRAT → "Add Beta Plugin" → enter this repository
+            3. BRAT installs it automatically and keeps it up to date
+
+            > Note: The server executable is downloaded automatically on first
+            > start, matching your platform, from this release.
+
+            #### Set up Claude Desktop (macOS)
+            In `~/Library/Application Support/Claude/claude_desktop_config.json`:
+            ```json
+            {
+              "mcpServers": {
+                "obsidian": {
+                  "command": "/path/to/.obsidian/plugins/obsidian-mcp/bin/obsidian-mcp-server-darwin",
+                  "args": ["--transport", "stdio"]
+                }
+              }
+            }
+            ```
+
+            #### Set up Claude Desktop (Windows)
+            In `%APPDATA%\Claude\claude_desktop_config.json`:
+            ```json
+            {
+              "mcpServers": {
+                "obsidian": {
+                  "command": "C:/path/to/.obsidian/plugins/obsidian-mcp/bin/obsidian-mcp-server.exe",
+                  "args": ["--transport", "stdio"]
+                }
+              }
+            }
+            ```
+
+            #### VS Code / OpenWebUI
+            Server URL: `http://127.0.0.1:3333/sse`
+
+            ---
+
+            <!-- ───────────────────────────── DEUTSCH ───────────────────────────── -->
+            ## 🇩🇪 Deutsch
+
+            ### Installation
+
+            #### Option A: Manuell
             1. Passendes ZIP herunterladen und entpacken:
                - Windows: `obsidian-mcp-windows.zip`
                - macOS (Apple Silicon): `obsidian-mcp-macos.zip`
             2. Ordner `obsidian-mcp/` nach `<Vault>/.obsidian/plugins/` kopieren
             3. In Obsidian: Settings → Community Plugins → Obsidian MCP aktivieren
 
-            ### Option B: BRAT Plugin Manager
+            #### Option B: BRAT Plugin Manager
             1. [BRAT](https://github.com/TfTHacker/obsidian42-brat) installieren
             2. BRAT → "Add Beta Plugin" → dieses Repository eintragen
             3. BRAT installiert automatisch und haelt es aktuell
@@ -163,7 +217,7 @@ jobs:
             > Hinweis: Die Server-Executable wird beim ersten Start automatisch
             > passend zur Plattform aus diesem Release nachgeladen.
 
-            ### Claude Desktop einrichten (macOS)
+            #### Claude Desktop einrichten (macOS)
             In `~/Library/Application Support/Claude/claude_desktop_config.json`:
             ```json
             {
@@ -176,7 +230,7 @@ jobs:
             }
             ```
 
-            ### Claude Desktop einrichten (Windows)
+            #### Claude Desktop einrichten (Windows)
             In `%APPDATA%\Claude\claude_desktop_config.json`:
             ```json
             {
@@ -189,7 +243,7 @@ jobs:
             }
             ```
 
-            ### VS Code / OpenWebUI
+            #### VS Code / OpenWebUI
             Server-URL: `http://127.0.0.1:3333/sse`
           files: |
             obsidian-mcp-windows.zip
