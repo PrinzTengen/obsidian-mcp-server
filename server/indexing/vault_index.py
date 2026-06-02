@@ -8,6 +8,7 @@ directly. The index is opt-in for new callers.
 from __future__ import annotations
 
 import re
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -51,12 +52,18 @@ class VaultIndex:
     def __init__(self) -> None:
         self._notes: dict[str, IndexedNote] = {}
         self._vault_path: Path | None = None
+        self._last_sync_at: float = 0.0
 
     # ── Public read API ───────────────────────────────────────────────────────
 
     @property
     def vault_path(self) -> Path | None:
         return self._vault_path
+
+    @property
+    def last_sync_at(self) -> float:
+        """Monotonic timestamp of the most recent build/ensure_fresh sweep."""
+        return self._last_sync_at
 
     @property
     def notes(self) -> dict[str, IndexedNote]:
@@ -86,6 +93,43 @@ class VaultIndex:
             note = self._read_note(md)
             if note is not None:
                 self._notes[note.path] = note
+        self._last_sync_at = time.monotonic()
+
+    def ensure_fresh(self, max_age_seconds: float = 2.0) -> bool:
+        """Incrementally sync the index with disk if it has gone stale.
+
+        Walks the vault doing only stat() calls; re-reads notes whose mtime
+        or size changed, adds notes missing from the index, and drops notes
+        whose files no longer exist. Skips the sweep entirely if the last
+        sync was within `max_age_seconds` — this makes multiple tool calls
+        in the same conversational turn essentially free.
+
+        Returns True if a sync ran, False if it was skipped.
+        """
+        if self._vault_path is None:
+            raise RuntimeError("VaultIndex.ensure_fresh called before build()")
+        if time.monotonic() - self._last_sync_at < max_age_seconds:
+            return False
+
+        seen: set[str] = set()
+        for md in self._iter_markdown_files(self._vault_path):
+            try:
+                stat = md.stat()
+            except OSError:
+                continue
+            rel = str(md.resolve().relative_to(self._vault_path)).replace("\\", "/")
+            seen.add(rel)
+            cached = self._notes.get(rel)
+            if cached is None or cached.mtime != stat.st_mtime or cached.size != stat.st_size:
+                note = self._read_note(md)
+                if note is not None:
+                    self._notes[note.path] = note
+        for rel in list(self._notes.keys()):
+            if rel not in seen:
+                del self._notes[rel]
+
+        self._last_sync_at = time.monotonic()
+        return True
 
     def refresh_note(self, path: str) -> IndexedNote | None:
         """Re-read a single note from disk.

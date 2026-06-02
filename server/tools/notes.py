@@ -1,5 +1,6 @@
 import frontmatter
 
+from indexing import registry
 from vault_manager import VaultError, ensure_parent, get_vault, resolve_path
 
 
@@ -18,6 +19,7 @@ def create_note(
         ensure_parent(note_path)
         post = frontmatter.Post(content, **(frontmatter_data or {}))
         note_path.write_text(frontmatter.dumps(post), encoding="utf-8")
+        registry.notify_change(vault, _ensure_md(path))
         return f"Note created: {path}"
     except VaultError as e:
         return f"Error: {e}"
@@ -53,6 +55,7 @@ def update_note(
         if frontmatter_data is not None:
             post.metadata.update(frontmatter_data)
         note_path.write_text(frontmatter.dumps(post), encoding="utf-8")
+        registry.notify_change(vault, _ensure_md(path))
         return f"Note updated: {path}"
     except VaultError as e:
         return f"Error: {e}"
@@ -65,6 +68,7 @@ def delete_note(vault: str, path: str) -> str:
         if not note_path.exists():
             return f"Error: Note not found: {path}"
         note_path.unlink()
+        registry.notify_change(vault, _ensure_md(path), removed=True)
         return f"Note deleted: {path}"
     except VaultError as e:
         return f"Fehler: {e}"
@@ -81,6 +85,8 @@ def move_note(vault: str, from_path: str, to_path: str) -> str:
             return f"Error: Destination already exists: {to_path}"
         ensure_parent(dst)
         src.rename(dst)
+        registry.notify_change(vault, _ensure_md(from_path), removed=True)
+        registry.notify_change(vault, _ensure_md(to_path))
         return f"Note moved: {from_path} -> {to_path}"
     except VaultError as e:
         return f"Error: {e}"
