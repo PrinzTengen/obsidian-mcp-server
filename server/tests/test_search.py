@@ -1,4 +1,4 @@
-from tools.search import search_by_tag, search_notes
+from tools.search import find_notes, search_by_tag, search_notes
 
 
 def test_search_notes_finds_matches(tmp_vault):
@@ -66,3 +66,60 @@ def test_search_by_tag_does_not_match_word_extensions(tmp_vault):
 def test_search_by_tag_frontmatter_as_string(tmp_vault):
     (tmp_vault / "a.md").write_text("---\ntags: solo\n---\nbody")
     assert search_by_tag("test", "solo") == [{"path": "a.md"}]
+
+
+# ── find_notes (fuzzy name/title search) ────────────────────────────────────
+
+
+def test_find_notes_exact_name(tmp_vault):
+    (tmp_vault / "Projekt.md").write_text("body")
+    (tmp_vault / "Other.md").write_text("body")
+    results = find_notes("test", "Projekt")
+    assert results[0]["path"] == "Projekt.md"
+    assert results[0]["score"] == 1.0
+
+
+def test_find_notes_tolerates_typos(tmp_vault):
+    (tmp_vault / "Projekt.md").write_text("body")
+    results = find_notes("test", "projkt")
+    assert [r["path"] for r in results] == ["Projekt.md"]
+
+
+def test_find_notes_matches_frontmatter_title(tmp_vault):
+    (tmp_vault / "n.md").write_text("---\ntitle: My Grand Plan\n---\nbody")
+    results = find_notes("test", "Grand Plan")
+    assert results[0]["path"] == "n.md"
+    assert results[0]["title"] == "My Grand Plan"
+
+
+def test_find_notes_matches_path_and_subfolders(tmp_vault):
+    (tmp_vault / "Areas").mkdir()
+    (tmp_vault / "Areas" / "Health.md").write_text("body")
+    results = find_notes("test", "Areas/Health")
+    assert results[0]["path"] == "Areas/Health.md"
+
+
+def test_find_notes_ranks_prefix_above_fuzzy(tmp_vault):
+    (tmp_vault / "Meeting Notes.md").write_text("body")
+    (tmp_vault / "Mtg.md").write_text("body")
+    results = find_notes("test", "Meeting")
+    assert results[0]["path"] == "Meeting Notes.md"
+
+
+def test_find_notes_drops_unrelated(tmp_vault):
+    (tmp_vault / "Apple.md").write_text("body")
+    (tmp_vault / "Zebra.md").write_text("body")
+    results = find_notes("test", "Apple")
+    assert [r["path"] for r in results] == ["Apple.md"]
+
+
+def test_find_notes_respects_limit(tmp_vault):
+    for i in range(5):
+        (tmp_vault / f"note{i}.md").write_text("body")
+    results = find_notes("test", "note", limit=2)
+    assert len(results) == 2
+
+
+def test_find_notes_empty_query_returns_empty(tmp_vault):
+    (tmp_vault / "a.md").write_text("body")
+    assert find_notes("test", "   ") == []

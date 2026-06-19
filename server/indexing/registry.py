@@ -37,18 +37,31 @@ def invalidate(vault: str) -> None:
     _indexes.pop(vault, None)
 
 
-def notify_change(vault: str, path: str, removed: bool = False) -> None:
+def notify_change(
+    vault: str,
+    path: str,
+    removed: bool = False,
+    content: str | None = None,
+    frontmatter: dict | None = None,
+) -> None:
     """Tell the registry that a single note changed or was deleted.
 
     Surgically updates an already-built index instead of forcing a full
     rebuild. Does nothing if no index is cached yet (the next read will
     build one from disk anyway).
+
+    If the caller already holds the note's parsed ``content`` (and optionally
+    ``frontmatter``) — e.g. right after writing it — pass them so the index can
+    be updated without re-reading and re-parsing the file from disk. Otherwise
+    the note is re-read via ``refresh_note``.
     """
     idx = _indexes.get(vault)
     if idx is None:
         return
     if removed:
         idx.remove_note(path)
+    elif content is not None:
+        idx.set_note(path, content, frontmatter or {})
     else:
         idx.refresh_note(path)
 

@@ -7,6 +7,7 @@ directly. The index is opt-in for new callers.
 
 from __future__ import annotations
 
+import os
 import re
 import time
 from dataclasses import dataclass, field
@@ -85,12 +86,12 @@ class VaultIndex:
         """Scan the vault from scratch.
 
         Replaces any prior state. Skips files inside hidden folders (e.g.
-        `.obsidian/`, `.trash/`).
+        `.obsidian/`, `.trash/`) — those directories are never descended into.
         """
         self._vault_path = Path(vault_path).resolve()
         self._notes.clear()
-        for md in self._iter_markdown_files(self._vault_path):
-            note = self._read_note(md)
+        for entry in self._iter_markdown_entries(self._vault_path):
+            note = self._read_entry(entry)
             if note is not None:
                 self._notes[note.path] = note
         self._last_sync_at = time.monotonic()
@@ -98,11 +99,14 @@ class VaultIndex:
     def ensure_fresh(self, max_age_seconds: float = 2.0) -> bool:
         """Incrementally sync the index with disk if it has gone stale.
 
-        Walks the vault doing only stat() calls; re-reads notes whose mtime
-        or size changed, adds notes missing from the index, and drops notes
-        whose files no longer exist. Skips the sweep entirely if the last
-        sync was within `max_age_seconds` — this makes multiple tool calls
-        in the same conversational turn essentially free.
+        Walks the vault with a single ``os.scandir`` pass. On most platforms
+        (notably Windows) the directory entry already carries ``st_mtime`` and
+        ``st_size``, so ``entry.stat()`` issues no extra syscall — we re-read
+        only notes whose mtime or size changed, add notes missing from the
+        index, and drop notes whose files no longer exist. Hidden directories
+        are pruned, never descended into. Skips the sweep entirely if the last
+        sync was within ``max_age_seconds`` — this makes multiple tool calls in
+        the same conversational turn essentially free.
 
         Returns True if a sync ran, False if it was skipped.
         """
@@ -112,16 +116,16 @@ class VaultIndex:
             return False
 
         seen: set[str] = set()
-        for md in self._iter_markdown_files(self._vault_path):
+        for entry in self._iter_markdown_entries(self._vault_path):
             try:
-                stat = md.stat()
+                stat = entry.stat()
             except OSError:
                 continue
-            rel = str(md.resolve().relative_to(self._vault_path)).replace("\\", "/")
+            rel = self._rel(entry.path)
             seen.add(rel)
             cached = self._notes.get(rel)
             if cached is None or cached.mtime != stat.st_mtime or cached.size != stat.st_size:
-                note = self._read_note(md)
+                note = self._read_entry(entry, stat=stat)
                 if note is not None:
                     self._notes[note.path] = note
         for rel in list(self._notes.keys()):
@@ -145,11 +149,40 @@ class VaultIndex:
         if not file_path.exists():
             self._notes.pop(rel, None)
             return None
-        note = self._read_note(file_path)
+        note = self._read_note(str(file_path))
         if note is None:
             self._notes.pop(rel, None)
             return None
         self._notes[note.path] = note
+        return note
+
+    def set_note(self, path: str, content: str, fm: dict) -> IndexedNote | None:
+        """Update a note from already-parsed content, without re-reading body.
+
+        Used right after a write, when the caller already holds the note's
+        content and frontmatter — this avoids a redundant ``frontmatter.load``
+        of the file we just wrote. Only ``stat()`` is touched, for mtime/size.
+        Returns None if the file cannot be stat'd (falls back to nothing).
+        """
+        if self._vault_path is None:
+            raise RuntimeError("VaultIndex.set_note called before build()")
+        rel = self._normalize(path)
+        file_path = self._vault_path / rel
+        try:
+            stat = file_path.stat()
+        except OSError:
+            return None
+        fm = dict(fm)
+        note = IndexedNote(
+            path=rel,
+            content=content,
+            frontmatter=fm,
+            tags=self._collect_tags(fm, content),
+            outlinks=self._collect_outlinks(content),
+            mtime=stat.st_mtime,
+            size=stat.st_size,
+        )
+        self._notes[rel] = note
         return note
 
     def remove_note(self, path: str) -> None:
@@ -164,21 +197,59 @@ class VaultIndex:
             rel = rel + ".md"
         return rel
 
-    def _iter_markdown_files(self, vault_path: Path):
-        for md in vault_path.rglob("*.md"):
-            if any(part.startswith(".") for part in md.relative_to(vault_path).parts):
-                continue
-            yield md
+    def _rel(self, full_path: str) -> str:
+        """Vault-relative POSIX path for an absolute file under the vault.
 
-    def _read_note(self, file_path: Path) -> IndexedNote | None:
+        Computed via ``os.path.relpath`` against the already-resolved vault
+        root — no per-file ``Path.resolve()`` syscall.
+        """
+        assert self._vault_path is not None
+        return os.path.relpath(full_path, self._vault_path).replace("\\", "/")
+
+    def _iter_markdown_entries(self, vault_path: Path):
+        """Yield ``os.DirEntry`` for every ``.md`` file outside hidden folders.
+
+        Uses an explicit ``os.scandir`` stack so hidden directories are pruned
+        before descent (we never enter ``.obsidian/``, ``.git/``, ``.trash/``)
+        and so the yielded entries carry cached stat data.
+        """
+        stack: list[str] = [str(vault_path)]
+        while stack:
+            current = stack.pop()
+            try:
+                with os.scandir(current) as it:
+                    for entry in it:
+                        if entry.name.startswith("."):
+                            continue
+                        try:
+                            is_dir = entry.is_dir(follow_symlinks=False)
+                        except OSError:
+                            continue
+                        if is_dir:
+                            stack.append(entry.path)
+                        elif entry.name.endswith(".md"):
+                            yield entry
+            except OSError:
+                continue
+
+    def _read_entry(self, entry: os.DirEntry, stat=None) -> IndexedNote | None:
+        try:
+            if stat is None:
+                stat = entry.stat()
+        except OSError:
+            return None
+        return self._read_note(entry.path, stat=stat)
+
+    def _read_note(self, file_path: str, stat=None) -> IndexedNote | None:
         assert self._vault_path is not None
         try:
-            stat = file_path.stat()
-            post = frontmatter.load(str(file_path))
+            if stat is None:
+                stat = os.stat(file_path)
+            post = frontmatter.load(file_path)
         except (OSError, ValueError):
             return None
 
-        rel = str(file_path.resolve().relative_to(self._vault_path)).replace("\\", "/")
+        rel = self._rel(file_path)
         content = post.content
         fm = dict(post.metadata)
 

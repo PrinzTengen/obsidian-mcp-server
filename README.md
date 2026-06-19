@@ -4,7 +4,7 @@ Give AI assistants direct access to your Obsidian vaults via the [Model Context 
 
 **Supported clients:** Claude Desktop · Claude Code CLI · VS Code (Continue, Cline, Copilot) · OpenWebUI · AnythingLLM · n8n
 
-**22 Tools:** Create/read/edit/delete notes · Manage folders · Full-text search · Tags & backlinks · Attachments · Multi-vault support
+**23 Tools:** Create/read/edit/delete notes · Manage folders · Fuzzy & full-text search · Tags & backlinks · Attachments · Multi-vault support
 
 ---
 
@@ -230,7 +230,8 @@ Add the vault "Work" at C:\Users\Name\Documents\Obsidian\Work
 | | `move_folder_tool` | Move or rename a folder |
 | | `list_folder_tool` | List folder contents |
 | | `get_vault_tree_tool` | Show the full vault structure |
-| **Search** | `search_notes_tool` | Full-text search |
+| **Search** | `find_notes_tool` | Fast fuzzy lookup by note name/title (typo-tolerant) |
+| | `search_notes_tool` | Full-text search |
 | | `search_by_tag_tool` | Search by tag |
 | **Metadata** | `read_frontmatter_tool` | Read YAML frontmatter |
 | | `write_frontmatter_tool` | Write YAML frontmatter |

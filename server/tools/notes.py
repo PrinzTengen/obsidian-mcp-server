@@ -19,7 +19,9 @@ def create_note(
         ensure_parent(note_path)
         post = frontmatter.Post(content, **(frontmatter_data or {}))
         note_path.write_text(frontmatter.dumps(post), encoding="utf-8")
-        registry.notify_change(vault, _ensure_md(path))
+        registry.notify_change(
+            vault, _ensure_md(path), content=post.content, frontmatter=dict(post.metadata)
+        )
         return f"Note created: {path}"
     except VaultError as e:
         return f"Error: {e}"
@@ -55,7 +57,9 @@ def update_note(
         if frontmatter_data is not None:
             post.metadata.update(frontmatter_data)
         note_path.write_text(frontmatter.dumps(post), encoding="utf-8")
-        registry.notify_change(vault, _ensure_md(path))
+        registry.notify_change(
+            vault, _ensure_md(path), content=post.content, frontmatter=dict(post.metadata)
+        )
         return f"Note updated: {path}"
     except VaultError as e:
         return f"Error: {e}"

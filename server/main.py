@@ -11,7 +11,7 @@ from tools.attachments import delete_attachment, list_attachments, read_attachme
 from tools.folders import create_folder, delete_folder, get_vault_tree, list_folder, move_folder
 from tools.metadata import get_backlinks, get_outlinks, read_frontmatter, write_frontmatter
 from tools.notes import create_note, delete_note, move_note, read_note, update_note
-from tools.search import search_by_tag, search_notes
+from tools.search import find_notes, search_by_tag, search_notes
 
 mcp = FastMCP("Obsidian MCP")
 
@@ -217,6 +217,24 @@ def search_notes_tool(
         case_sensitive: Whether the search is case-sensitive
     """
     return search_notes(vault, query, folder, case_sensitive)
+
+
+@mcp.tool()
+def find_notes_tool(vault: str, query: str, limit: int = 20) -> list:
+    """Quickly find a note by name/title — fuzzy and typo-tolerant.
+
+    The fastest way to locate a note when you roughly know its name. Matches
+    against filename, frontmatter `title`, and folder path, tolerates typos
+    (e.g. 'projkt' finds 'Projekt'), and returns the best matches ranked by
+    relevance with a `score`. Runs off the in-memory index, so it's instant
+    even on large vaults. For searching inside note bodies use `search_notes`.
+
+    Args:
+        vault: Vault name
+        query: Approximate note name or title
+        limit: Maximum number of results to return (default 20)
+    """
+    return find_notes(vault, query, limit)
 
 
 @mcp.tool()

@@ -38,7 +38,9 @@ def write_frontmatter(vault: str, path: str, fm_data: dict, merge: bool = True) 
         else:
             post.metadata = fm_data
         note_path.write_text(frontmatter.dumps(post), encoding="utf-8")
-        registry.notify_change(vault, _ensure_md(path))
+        registry.notify_change(
+            vault, _ensure_md(path), content=post.content, frontmatter=dict(post.metadata)
+        )
         return f"Frontmatter updated: {path}"
     except VaultError as e:
         return f"Error: {e}"
@@ -46,22 +48,20 @@ def write_frontmatter(vault: str, path: str, fm_data: dict, merge: bool = True) 
 
 def get_backlinks(vault: str, path: str) -> list:
     try:
-        vault_path = get_vault(vault)
-        target_stem = Path(_ensure_md(path)).stem.lower()
-        results = []
-        for note in vault_path.rglob("*.md"):
-            if any(part.startswith(".") for part in note.parts):
-                continue
-            text = note.read_text(encoding="utf-8", errors="ignore")
-            for match in WIKILINK_RE.finditer(text):
-                link_target = match.group(1).strip()
-                if link_target.lower() == target_stem or link_target.lower() == path.lower():
-                    rel = str(note.relative_to(vault_path)).replace("\\", "/")
-                    results.append({"path": rel, "link_text": match.group(0)})
-                    break
-        return results
+        idx = registry.get_index(vault)
     except VaultError as e:
         return [{"error": str(e)}]
+
+    target_stem = Path(_ensure_md(path)).stem.lower()
+    target_path = path.lower()
+    results = []
+    for note_path, note in idx.notes.items():
+        for link in note.outlinks:
+            link_lower = link.lower()
+            if Path(link).stem.lower() == target_stem or link_lower == target_path:
+                results.append({"path": note_path, "link_text": f"[[{link}]]"})
+                break
+    return results
 
 
 def get_outlinks(vault: str, path: str) -> list:
