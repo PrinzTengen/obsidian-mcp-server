@@ -15,6 +15,8 @@ from indexing import registry as index_registry  # noqa: E402
 def _reset_caches():
     """Wipe per-process caches between tests so they can't leak state."""
     index_registry.reset()
+    config.reset_cache()
+    vault_manager.reset_cache()
     try:
         from tools import folders as _folders
 
